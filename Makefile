@@ -1,13 +1,14 @@
 # Here comes the variables
-OUTPUT = main
-
+OUTPUT = 		main
+CIVIL = 		Civil.c
+CIVIL_HEADER = 	Civil.h
 
 
 all: Civil.o
 	g++ -o $(OUTPUT) main.c Civil.o
 
-Civil.o: Civil.h Civil.c
-	g++ -c Civil.c
+Civil.o: $(CIVIL) $(CIVIL_HEADER)
+	g++ -c $(CIVIL)
 
 output: gnuplot.sh
 	cat gnuplot.sh | gnuplot
