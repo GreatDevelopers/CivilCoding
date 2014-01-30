@@ -13,4 +13,6 @@
  *                   https://github.com/GreatDevelopers
  */
 
-int cantbm(int Nc, int Nu, float l, int N);
+int cantbm_input(int, int, float, int);
+int cantbm_process(float[], float[], float[], float[], float[], FILE*, float, int, int, int);
+int cantbm_output(float[], float[], float[], float[], FILE*, float, int, int);
