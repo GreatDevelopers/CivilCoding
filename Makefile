@@ -3,11 +3,14 @@ OUTPUT = main
 
 
 
-all: Civil.o
-	g++ -o $(OUTPUT) main.c Civil.o
+all: Civil_new.o
+	g++ -o $(OUTPUT) main.c Civil_new.o
 
-Civil.o: Civil.h Civil.c
-	g++ -c Civil.c
+Civil_new.o: Civil_new.h Civil_new.c
+	g++ -c Civil_new.c
 
 output: gnuplot.sh
-	cat gnuplot.sh | gnuplot	
+	cat gnuplot.sh | gnuplot
+
+clean:
+	rm *.o

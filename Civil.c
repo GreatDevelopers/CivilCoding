@@ -30,8 +30,8 @@ int cantbm(int Nc, int Nu, float l, int N)
 {
     FILE *fp;
     int i, j, k;
-    float x, dx, wu[10], au[10], lu[10], Vc[10], Mc[10], Vu[10];
-    float Mu[10], V[10], M[10], p[10], ac[10];
+    float x, dx, wu[20], au[20], lu[20], Vc[20], Mc[20], Vu[20];
+    float Mu[20], V[20], M[20], p[20], ac[20];
 
     fp = fopen("cantbm.out", "a");
     
