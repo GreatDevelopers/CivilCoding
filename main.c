@@ -1,9 +1,9 @@
 #include<stdio.h>
 #include<math.h>
-#include"Civil_new.h"
+#include"Civil.h"
 
 int main()
 {
-    cantbm_input(3,0,5,10);
+    cantBMInput(3,0,5,10);
     return 0;
 }

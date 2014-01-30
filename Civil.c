@@ -5,42 +5,42 @@
 /*
  * Program for analysis of cantilever beam developed by Dr.G.S.Suresh and Dr. 
  * M.N.Shesha Prakash
- * l = Span of the beam
- * p[] = Intensity of concentrated load
- * ac[] = Position of concentrated load measured from free end A
- * wu[]=  Intensity of uniformly distributed load (udl)
- * au[] = Position of starting point of udl measured from free end A
- * lu[] = Length of udl
- * x = Position of section where SF and BM are computed, measured from free end A
- * dx = Length of segment computed as total length divided by number of segments 
- * Nc = Number of concentrated loads
- * Nu = Number of uniformly distributed loads
+ * spanBeam = Span of the beam(l)
+ * conLoadInten[] = Intensity of concentrated load(p)
+ * conLoadA[] = Position of concentrated load measured from free end A(ac)
+ * uniIntensity[]=  Intensity of uniformly distributed load (udl)(wu)
+ * udlStartPos[] = Position of starting point of udl measured from free end A(au)
+ * lenUDL[] = Length of udl(lu)
+ * x = Position of section where SF and BM are computed, measured from free end A(x)
+ * dx = Length of segment computed as total length divided by number of segments (dx)
+ * noConLoad = Number of concentrated loads(Nc)
+ * noUniLoad = Number of uniformly distributed loads(Nu)
  * N = Number of segments
- * Vc[] = Shear force at a section due to concentrated loads
- * Vu[] = Shear force at a section due to uniformly distributed loads
- * Mc[] = Bending moment at a section due to concentrated loads
- * Mu[] = Bending moment at a section due to uniformly distributed loads
- * V[] =  Net shear force at a section due to concentrated loads and uniformly distributed 
- * loads
- * M[] =  Net bending moment at a section due to concentrated loads and uniformly 
- * distributed loads
+ * conLoadShearForce[] = Shear force at a section due to concentrated loads(Vc)
+ * uniLoadShearForce[] = Shear force at a section due to uniformly distributed loads(Vu)
+ * conLoadBendMoment[] = Bending moment at a section due to concentrated loads(Mc)
+ * uniLoadBendMoment[] = Bending moment at a section due to uniformly distributed loads(Mu)
+ * netShearForce[] =  Net shear force at a section due to concentrated loads and uniformly distributed 
+ * loads(V)
+ * netBendMoment[] =  Net bending moment at a section due to concentrated loads and uniformly 
+ * distributed loads(M)
  * i,j,k  are integer variables used as index in for loops
  * */
 #define FILENAME "cantbm.out"
 
 const int size = 10;
 
-int cantbm_output(float V[10], float M[10], float ac[10], float p[10], FILE *fp, float l, int N, int Nc)
+int cantBMOutput(float netShearForce[10], float netBendMoment[10], float conLoadA[10], float conLoadInten[10], FILE *fp, float spanBeam, int noSeg, int noConLoad)
 {
-    float x = 0, dx = l / N;
-    for (int i = 0; i <= N; i++)
+    float x = 0, dx = spanBeam / noSeg;
+    for (int i = 0; i <= noSeg; i++)
     {
-            fprintf(fp, "%5.0f %10.3f %10.3f\n", x, V[i], M[i]);
-            for(int j = 1; j <= Nc; j++)
+            fprintf(fp, "%5.0f %10.3f %10.3f\n", x, netShearForce[i], netBendMoment[i]);
+            for(int j = 1; j <= noConLoad; j++)
             {
-                if (x == ac[j])
+                if (x == conLoadA[j])
                 {
-                    fprintf(fp, "%5.0f %10.3f %10.3f\n", x, V[i] + p[j], M[i]);
+                    fprintf(fp, "%5.0f %10.3f %10.3f\n", x, netShearForce[i] + conLoadInten[j], netBendMoment[i]);
                 }
             }
             x += dx;
@@ -50,84 +50,84 @@ int cantbm_output(float V[10], float M[10], float ac[10], float p[10], FILE *fp,
 
 }
 
-int cantbm_process(float p[10], float ac[10], float wu[10], float au[10], float lu[10], FILE* fp, float l, int N, int Nc, int Nu)
+int cantBMProcess(float conLoadInten[10], float conLoadA[10], float uniIntensity[10], float udlStartPos[10], float lenUDL[10], FILE* fp, float spanBeam, int noSeg, int noConLoad, int noUniLoad)
 {
         fprintf(fp, " x      SF      BM\n");
-        float x = 0, Vc[10], Mc[10], Vu[10], Mu[10], V[10], M[10];
-        float dx = l / N;
-        for (int i = 0; i <= N; i++)
+        float x = 0, conLoadShearForce[10], conLoadBendMoment[10], uniLoadShearForce[10], uniLoadBendMoment[10], netShearForce[10], netBendMoment[10];
+        float dx = spanBeam / noSeg;
+        for (int i = 0; i <= noSeg; i++)
         {
-            Vc[i] = 0;
-            Mc[i] = 0;
-            Vu[i] = 0;
-            Mu[i] = 0;
-            V[i] = 0;
-            M[i] = 0;
+            conLoadShearForce[i] = 0;
+            conLoadBendMoment[i] = 0;
+            uniLoadShearForce[i] = 0;
+            uniLoadBendMoment[i] = 0;
+            netShearForce[i] = 0;
+            netBendMoment[i] = 0;
         }
 
         //Output section kind of starts from here
-        for (int i = 0; i <= N; i++)
+        for (int i = 0; i <= noSeg; i++)
         {
-            for (int j = 1;j <= Nc; j++)
+            for (int j = 1;j <= noConLoad; j++)
             {
-                if (x > ac[j])
+                if (x > conLoadA[j])
                 {
-                    Vc[i] = Vc[i] + p[j];
-                    Mc[i] = Mc[i] - p[j] * (x - ac[j]);
+                    conLoadShearForce[i] = conLoadShearForce[i] + conLoadInten[j];
+                    conLoadBendMoment[i] = conLoadBendMoment[i] - conLoadInten[j] * (x - conLoadA[j]);
                 }
             }
 
-            for (int k = 1; k <= Nu; k++)
+            for (int k = 1; k <= noUniLoad; k++)
             {
-                if ((x > au[k]) && (x <= au[k] + lu[k]))
+                if ((x > udlStartPos[k]) && (x <= udlStartPos[k] + lenUDL[k]))
                 {
-                    Vu[i] = Vu[i] + wu[k] * (x - au[k]);
-                    Mu[i] = Mu[i] - wu[k] * (x - au[k]) * (x - au[k]) / 2.0;
+                    uniLoadShearForce[i] = uniLoadShearForce[i] + uniIntensity[k] * (x - udlStartPos[k]);
+                    uniLoadBendMoment[i] = uniLoadBendMoment[i] - uniIntensity[k] * (x - udlStartPos[k]) * (x - udlStartPos[k]) / 2.0;
                 }
-                else if (x > (au[k] + lu[k]))
+                else if (x > (udlStartPos[k] + lenUDL[k]))
                 {
-                    Vu[i] = Vu[i] + wu[k] * lu[k];
-                    Mu[i] = Mu[i] - wu[k] * lu[k] * (x - au[k] - lu[k] / 2.0);
+                    uniLoadShearForce[i] = uniLoadShearForce[i] + uniIntensity[k] * lenUDL[k];
+                    uniLoadBendMoment[i] = uniLoadBendMoment[i] - uniIntensity[k] * lenUDL[k] * (x - udlStartPos[k] - lenUDL[k] / 2.0);
                 }
             }
-            V[i] = Vc[i] + Vu[i];
-            M[i] = Mc[i] + Mu[i];
+            netShearForce[i] = conLoadShearForce[i] + uniLoadShearForce[i];
+            netBendMoment[i] = conLoadBendMoment[i] + uniLoadBendMoment[i];
             x = x + dx;
         }
 
-        cantbm_output(V, M, ac, p, fp, l, N, Nc);
+        cantBMOutput(netShearForce, netBendMoment, conLoadA, conLoadInten, fp, spanBeam, noSeg, noConLoad);
     return 0;
 }
 
 
 
 
-int cantbm_input(int Nc, int Nu, float l, int N)
+int cantBMInput(int noConLoad, int noUniLoad, float spanBeam, int noSeg)
 {
     FILE *fp;
     int i, j, k;
-    float p[10], ac[10], wu[10], au[10], lu[10];
+    float conLoadInten[10], conLoadA[10], uniIntensity[10], udlStartPos[10], lenUDL[10];
     fp = fopen(FILENAME, "a");
     
-    if (Nc > 0)
+    if (noConLoad > 0)
     {
         printf("For each Concentrated Load Enter Intensity of Load and its position \n");
-        for (i = 1; i <= Nc; i++)
+        for (i = 1; i <= noConLoad; i++)
         {
-            scanf("%f%f", &p[i], &ac[i]);
+            scanf("%f%f", &conLoadInten[i], &conLoadA[i]);
         }
     }
-    if (Nu > 0)
+    if (noUniLoad > 0)
     {
         printf("For each UDL Type Intensity of Load, its distance from free ");
         printf("end and length \n");
-        for ( i = 1; i <= Nu; i++)
+        for ( i = 1; i <= noUniLoad; i++)
         {
-            scanf("%f%f%f", &wu[i], &au[i], &lu[i]);
+            scanf("%f%f%f", &uniIntensity[i], &udlStartPos[i], &lenUDL[i]);
         }
     }
 
-    cantbm_process(p, ac, wu, au, lu, fp, l, N, Nc, Nu);      // Calling the process function
+    cantBMProcess(conLoadInten, conLoadA, uniIntensity, udlStartPos, lenUDL, fp, spanBeam, noSeg, noConLoad, noUniLoad);      // Calling the process function
 
     return 0;
 
