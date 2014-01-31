@@ -26,33 +26,47 @@
  * distributed loads(M)
  * i,j,k  are integer variables used as index in for loops
  * */
-#define FILENAME "cantbm.out"
+#define FILENAME_BM "cantbm.out"
+#define FILENAME_SF "cantsf.out"
 
 const int size = 10;
 
-int cantBMOutput(float netShearForce[10], float netBendMoment[10], float conLoadA[10], float conLoadInten[10], FILE *fp, float spanBeam, int noSeg, int noConLoad)
+int cantBMInput(int noConLoad, int noUniLoad, float spanBeam, int noSeg)
 {
-    float x = 0, dx = spanBeam / noSeg;
-    for (int i = 0; i <= noSeg; i++)
+    FILE *fbm, *fsf;
+    int i, j, k;
+    float conLoadInten[10], conLoadA[10], uniIntensity[10], udlStartPos[10], lenUDL[10];
+    fbm = fopen(FILENAME_BM, "a");
+    fsf = fopen(FILENAME_SF, "a");
+    
+    if (noConLoad > 0)
     {
-            fprintf(fp, "%5.0f %10.3f %10.3f\n", x, netShearForce[i], netBendMoment[i]);
-            for(int j = 1; j <= noConLoad; j++)
-            {
-                if (x == conLoadA[j])
-                {
-                    fprintf(fp, "%5.0f %10.3f %10.3f\n", x, netShearForce[i] + conLoadInten[j], netBendMoment[i]);
-                }
-            }
-            x += dx;
+        printf("For each Concentrated Load Enter Intensity of Load and its position \n");
+        for (i = 1; i <= noConLoad; i++)
+        {
+            scanf("%f%f", &conLoadInten[i], &conLoadA[i]);
+        }
     }
+    if (noUniLoad > 0)
+    {
+        printf("For each UDL Type Intensity of Load, its distance from free ");
+        printf("end and length \n");
+        for ( i = 1; i <= noUniLoad; i++)
+        {
+            scanf("%f%f%f", &uniIntensity[i], &udlStartPos[i], &lenUDL[i]);
+        }
+    }
+
+    cantBMProcess(conLoadInten, conLoadA, uniIntensity, udlStartPos, lenUDL, fbm, fsf, spanBeam, noSeg, noConLoad, noUniLoad);      // Calling the process function
 
     return 0;
 
 }
 
-int cantBMProcess(float conLoadInten[10], float conLoadA[10], float uniIntensity[10], float udlStartPos[10], float lenUDL[10], FILE* fp, float spanBeam, int noSeg, int noConLoad, int noUniLoad)
+
+
+int cantBMProcess(float conLoadInten[10], float conLoadA[10], float uniIntensity[10], float udlStartPos[10], float lenUDL[10], FILE* fbm, FILE* fsf, float spanBeam, int noSeg, int noConLoad, int noUniLoad)
 {
-        fprintf(fp, " x      SF      BM\n");
         float x = 0, conLoadShearForce[10], conLoadBendMoment[10], uniLoadShearForce[10], uniLoadBendMoment[10], netShearForce[10], netBendMoment[10];
         float dx = spanBeam / noSeg;
         for (int i = 0; i <= noSeg; i++)
@@ -95,39 +109,28 @@ int cantBMProcess(float conLoadInten[10], float conLoadA[10], float uniIntensity
             x = x + dx;
         }
 
-        cantBMOutput(netShearForce, netBendMoment, conLoadA, conLoadInten, fp, spanBeam, noSeg, noConLoad);
+        cantBMOutput(netShearForce, netBendMoment, conLoadA, conLoadInten, fbm, fsf, spanBeam, noSeg, noConLoad);
     return 0;
 }
 
 
-
-
-int cantBMInput(int noConLoad, int noUniLoad, float spanBeam, int noSeg)
+int cantBMOutput(float netShearForce[10], float netBendMoment[10], float conLoadA[10], float conLoadInten[10], FILE *fbm, FILE* fsf, float spanBeam, int noSeg, int noConLoad)
 {
-    FILE *fp;
-    int i, j, k;
-    float conLoadInten[10], conLoadA[10], uniIntensity[10], udlStartPos[10], lenUDL[10];
-    fp = fopen(FILENAME, "a");
-    
-    if (noConLoad > 0)
+    float x = 0, dx = spanBeam / noSeg;
+    for (int i = 0; i <= noSeg; i++)
     {
-        printf("For each Concentrated Load Enter Intensity of Load and its position \n");
-        for (i = 1; i <= noConLoad; i++)
-        {
-            scanf("%f%f", &conLoadInten[i], &conLoadA[i]);
-        }
+            fprintf(fbm, "%5.0f %10.3f\n", x, netShearForce[i]);
+            fprintf(fsf, "%5.0f %10.3f\n", x, netBendMoment[i]);
+            for(int j = 1; j <= noConLoad; j++)
+            {
+                if (x == conLoadA[j])
+                {
+                    fprintf(fbm, "%5.0f %10.3f\n", x, netShearForce[i] + conLoadInten[j]);
+                    fprintf(fsf, "%5.0f %10.3f\n", x, netBendMoment[i]);
+                }
+            }
+            x += dx;
     }
-    if (noUniLoad > 0)
-    {
-        printf("For each UDL Type Intensity of Load, its distance from free ");
-        printf("end and length \n");
-        for ( i = 1; i <= noUniLoad; i++)
-        {
-            scanf("%f%f%f", &uniIntensity[i], &udlStartPos[i], &lenUDL[i]);
-        }
-    }
-
-    cantBMProcess(conLoadInten, conLoadA, uniIntensity, udlStartPos, lenUDL, fp, spanBeam, noSeg, noConLoad, noUniLoad);      // Calling the process function
 
     return 0;
 

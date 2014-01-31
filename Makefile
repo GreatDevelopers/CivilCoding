@@ -15,3 +15,5 @@ output: gnuplot.sh
 
 clean:
 	rm *.o
+	rm *.png
+	rm *.out
