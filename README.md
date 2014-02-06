@@ -26,7 +26,7 @@ How to Use
 
 	Clone this repository in your /home/yourusername/public_html/cgi-bin/
 	
-	$ https://github.com/GreatDevelopers/CivilCoding
+	$ git clone https://github.com/GreatDevelopers/CivilCoding
 
 	After Cloning give CivilCoding folder write permissions.
 
