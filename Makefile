@@ -5,7 +5,7 @@ CIVIL_HEADER = 	Civil.h
 
 
 all: Civil.o
-	g++ -o $(OUTPUT) main.c Civil.o
+	g++ -o $(OUTPUT) main.cpp Civil.o -lrudecgi
 
 Civil.o: $(CIVIL) $(CIVIL_HEADER)
 	g++ -c $(CIVIL)
@@ -15,5 +15,6 @@ output: gnuplot.sh
 
 clean:
 	rm *.o
-	rm *.png
 	rm *.out
+	rm *.png
+	

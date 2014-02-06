@@ -13,6 +13,9 @@
  *                   https://github.com/GreatDevelopers
  */
 
+#define FILENAME_BM "cantbm.out"
+#define FILENAME_SF "cantsf.out"
+
 int cantBMInput(int, int, float, int);
 int cantBMProcess(float[], float[], float[], float[], float[], FILE*, FILE*, float, int, int, int);
 int cantBMOutput(float[], float[], float[], float[], FILE*, FILE*, float, int, int);

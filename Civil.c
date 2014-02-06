@@ -26,8 +26,7 @@
  * distributed loads(M)
  * i,j,k  are integer variables used as index in for loops
  * */
-#define FILENAME_BM "cantbm.out"
-#define FILENAME_SF "cantsf.out"
+
 
 const int size = 10;
 

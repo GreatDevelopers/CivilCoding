@@ -1,0 +1,166 @@
+<div class="container">
+
+<form role="form" method="get" class="well form-horizontal" id='mainform'>
+    <div class="control-group">
+        <label for="nc" class="control-label">Value Of Nc</label>
+        <div class="controls">
+            <input type="text" name="nc" id='nc' placeholder="No of concentrated Load" />
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="nu" class="control-label">Value of Nu</label>
+        <div class="controls">
+            <input type="text" name="nu" id="nu" placeholder="No of uniformly distributed Load" />
+        </div>
+    </div>
+    <div class="control-group">
+        <label for="spanbeam" class="control-label">Span Beam</label>
+        <div class="controls">
+            <input type="text" name="spanbeam" id="spanbeam" placeholder="Span of the beam" />
+        </div>
+   </div>
+
+   <div class="control-group">
+        <label for ="noseg" class="control-label">No of Segments</label>
+        <div class="controls">
+            <input type="text" name="noseg" id="noseg" placeholder="No of Segments" />
+        </div>
+   </div>
+
+   <div style="display: none" id="ncvariables">
+<div class="control-group">
+        <label for="p" class="control-label">Intensity of concentrated Load</label>
+        <div class="controls" id='pcontrols'>        </div>
+  </div>
+
+  <div class="control-group">
+        <label for="ac" class="control-label">Position of concentrated load measured from free end A</label>
+        <div class="controls" id='accontrols'>
+        </div>
+  </div>
+  </div>
+
+  <div style="display: none" id="nuvariables">
+  <div class="control-group">
+        <label for="wu" class="control-label">Intensity of Uniformly Distributed Load</label>
+        <div class="controls" id='wucontrols'>
+        </div>
+  </div>
+
+  <div class="control-group">
+      <label for="au" class="control-label">Position of starting point of udl measured form starting point A</label>
+      <div class="controls" id='aucontrols'>
+      </div>
+  </div>
+
+<div class="control-group">
+      <label for="lu" class="control-label">Position of starting point of udl measured form starting point A</label>
+      <div class="controls" id="lucontrols">
+      </div>
+</div>
+
+</div>
+
+
+   <div class="control-group">
+        <div class="controls">
+            <input type="submit" class="btn btn-primary"  name="initialparameter" />
+        </div>
+  </div>
+</form>
+</div>
+<script type="text/javascript">
+
+    //When user submits the form
+    $("#mainform").submit(function ()
+    {
+        //Check for the variables here
+
+        var checkvariables = $("#nc, #nu, #noseg, #spanbeam,[name='p'],[name='ac'],[name='wu'],[name='au'],[name='lu']");
+        var error = false;
+
+        for (i = 0; i<checkvariables.length; i++)
+        {
+            if (checkvariables[i].value == "")
+              {
+                alert("Please enter a value. You cannot leave this field empty");
+                $(checkvariables[i]).focus();
+                error = true;
+                break;
+              }
+        }
+        return !error;
+    });
+
+    $("#nc").keyup(function(event) {
+        /* Act on the event */
+
+        if (isNaN(this.value))
+        {
+            this.value = 0;
+        }
+
+        if (this.value==0)
+        {
+            $("#ncvariables").hide();
+        }
+
+        //Create inputs accordingn to that
+        var pinput= $("<input type='text' name='p' value='0' />");
+        var acinput = $("<input type='text' name='ac' value='0' />");
+
+
+        //remove any previous inputs
+        $("#pcontrols").children().remove();
+        $("#accontrols").children().remove();
+        for (i=0; i<parseInt(this.value); i++)
+        {
+            $("<input type='text' name='p' value='0' />").appendTo('#pcontrols');
+        }
+        
+        for (i=0; i<this.value; i++)
+        {
+            $("#accontrols").append("<input type='text' name='ac' value='0' />");
+        }
+
+        $("#ncvariables").show();
+    });
+
+    $("#nu").keyup(function(event) {
+        /* Act on the event */
+        if (isNaN(this.value))
+        {
+            this.value=0;
+        }
+
+        if (this.value==0)
+        {
+            $("#nuvariables").hide();
+        }
+
+        var wuinput = $("<input type='text' name='wu' value='0' />");
+        var auinput = $("<input type='text' name='au' value='0' />");
+        var luinput = $("<input type='text' name='lu' value='0' />");
+        $("#wucontrols").children().remove();
+        $("#aucontrols").children().remove();
+        $("#lucontrols").children().remove();
+
+        for (i=0; i<this.value; i++)
+        {
+            $("<input type='text' name='wu' value='0' />").appendTo('#wucontrols');
+        }
+        for (i=0; i<this.value; i++)
+        {
+          $("<input type='text' name='au' value='0' />").appendTo('#aucontrols');
+        }
+        for (i=0; i<this.value; i++)
+        {
+            $("<input type='text' name='lu' value='0' />").appendTo('#lucontrols');
+        }
+
+        $("#nuvariables").show();
+
+
+    });
+
+</script>
