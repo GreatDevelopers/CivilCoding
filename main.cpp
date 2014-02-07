@@ -37,17 +37,17 @@ int main()
         float conLoadInten[10], conLoadA[10], uniIntensity[10], udlStartPos[10], lenUDL[10];
         if (nc>0)
         {
-            for (int i=0; i<nc; i++)
+            for (int i=1; i<=nc; i++)
             {
-                conLoadInten[i] = atof(cgi.value("p",i));
-                conLoadA[i] = atof(cgi.value("ac", i));
+                conLoadInten[i] = atof(cgi.value("p",i-1));
+                conLoadA[i] = atof(cgi.value("ac", i-1));
                 //cout<<conLoadA[i]<<endl<<conLoadInten[i]<<endl;
             }
         }
 
         if (nu>0)
         {
-            for (int i=0; i<nu; i++)
+            for (int i=1; i<=nu; i++)
             {
                 uniIntensity[i] = atof(cgi.value("wu",i));
                 udlStartPos[i] = atof(cgi.value("au", i));
