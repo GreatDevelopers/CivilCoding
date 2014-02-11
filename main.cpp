@@ -49,9 +49,9 @@ int main()
         {
             for (int i=1; i<=nu; i++)
             {
-                uniIntensity[i] = atof(cgi.value("wu",i));
-                udlStartPos[i] = atof(cgi.value("au", i));
-                lenUDL[i] = atof(cgi.value("lu", i));
+                uniIntensity[i] = atof(cgi.value("wu",i-1));
+                udlStartPos[i] = atof(cgi.value("au", i-1));
+                lenUDL[i] = atof(cgi.value("lu", i-1));
                 //cout<<uniIntensity[i]<<endl<<udlStartPos[i]<<endl<<lenUDL[i]<<endl;
             }
         }
