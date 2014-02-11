@@ -60,8 +60,8 @@ int main()
         FILE* fbm;
         FILE* fsf;
 
-        fbm = fopen(FILENAME_BM, "w");
-        fsf = fopen(FILENAME_SF, "w");  
+        fbm = fopen(FILENAME_SF, "w");
+        fsf = fopen(FILENAME_BM, "w");  
         
         //Now do the processing and output we have skipped the input part
         cantBMProcess(conLoadInten, conLoadA, uniIntensity, udlStartPos, lenUDL, fbm, fsf, spanbeam, noseg, nc, nu);

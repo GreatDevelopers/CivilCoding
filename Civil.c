@@ -35,8 +35,8 @@ int cantBMInput(int noConLoad, int noUniLoad, float spanBeam, int noSeg)
     FILE *fbm, *fsf;
     int i, j, k;
     float conLoadInten[10], conLoadA[10], uniIntensity[10], udlStartPos[10], lenUDL[10];
-    fbm = fopen(FILENAME_BM, "a");
-    fsf = fopen(FILENAME_SF, "a");
+    fbm = fopen(FILENAME_BM, "w");
+    fsf = fopen(FILENAME_SF, "w");
     
     if (noConLoad > 0)
     {
@@ -118,14 +118,14 @@ int cantBMOutput(float netShearForce[10], float netBendMoment[10], float conLoad
     float x = 0, dx = spanBeam / noSeg;
     for (int i = 0; i <= noSeg; i++)
     {
-            fprintf(fbm, "%5.0f %10.3f\n", x, netShearForce[i]);
-            fprintf(fsf, "%5.0f %10.3f\n", x, netBendMoment[i]);
+            fprintf(fsf, "%5.0f %10.3f\n", x, netShearForce[i]);
+            fprintf(fbm, "%5.0f %10.3f\n", x, netBendMoment[i]);
             for(int j = 1; j <= noConLoad; j++)
             {
                 if (x == conLoadA[j])
                 {
-                    fprintf(fbm, "%5.0f %10.3f\n", x, netShearForce[i] + conLoadInten[j]);
-                    fprintf(fsf, "%5.0f %10.3f\n", x, netBendMoment[i]);
+                    fprintf(fsf, "%5.0f %10.3f\n", x, netShearForce[i] + conLoadInten[j]);
+                    fprintf(fbm, "%5.0f %10.3f\n", x, netBendMoment[i]);
                 }
             }
             x += dx;
