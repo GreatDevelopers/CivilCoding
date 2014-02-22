@@ -5,18 +5,21 @@
         <label for="nc" class="control-label">No of concentrated Load</label>
         <div class="controls">
             <input type="text" name="nc" id='nc' placeholder="No of concentrated Load" />
+            <span class="help-block">Sample Input: 4</span>
         </div>
     </div>
     <div class="control-group">
         <label for="nu" class="control-label">No of UDL</label>
         <div class="controls">
             <input type="text" name="nu" id="nu" placeholder="No of uniformly distributed Load" />
+            <span class="help-block">Sample Input: 1</span>
         </div>
     </div>
     <div class="control-group">
         <label for="spanbeam" class="control-label">Span of Beam</label>
         <div class="controls">
             <input type="text" name="spanbeam" id="spanbeam" placeholder="Span of the beam" />
+            <span class="help-block">Sample Input: 5</span>
         </div>
    </div>
 
@@ -24,18 +27,22 @@
         <label for ="noseg" class="control-label">No of Segments</label>
         <div class="controls">
             <input type="text" name="noseg" id="noseg" placeholder="No of Segments" />
+            <span class="help-block">Sample Input: 5</span>
         </div>
    </div>
 
    <div style="display: none" id="ncvariables">
 <div class="control-group">
         <label for="p" class="control-label">Intensity of concentrated Load</label>
-        <div class="controls" id='pcontrols'>        </div>
+        <div class="controls" id='pcontrols'>
+            <span class="help-block">Sample Input: 2, 2, 3, 1</span>
+        </div>
   </div>
 
   <div class="control-group">
         <label for="ac" class="control-label">Position of concentrated load measured from free end A</label>
         <div class="controls" id='accontrols'>
+            <span class="help-block">Sample Input: 0, 1, 2, 4</span>
         </div>
   </div>
   </div>
@@ -44,18 +51,21 @@
   <div class="control-group">
         <label for="wu" class="control-label">Intensity of Uniformly Distributed Load</label>
         <div class="controls" id='wucontrols'>
+            <span class="help-block">Sample Input: 2</span>
         </div>
   </div>
 
   <div class="control-group">
       <label for="au" class="control-label">Position of starting point of udl measured form starting point A</label>
       <div class="controls" id='aucontrols'>
+      <span class="help-block">Sample Input: 1</span>
       </div>
   </div>
 
 <div class="control-group">
       <label for="lu" class="control-label">Length of UDL</label>
       <div class="controls" id="lucontrols">
+        <span class="help-block">Sample Input: 2</span>
       </div>
 </div>
 
@@ -141,9 +151,9 @@
         var wuinput = $("<input type='text' name='wu' value='0' />");
         var auinput = $("<input type='text' name='au' value='0' />");
         var luinput = $("<input type='text' name='lu' value='0' />");
-        $("#wucontrols").children().remove();
-        $("#aucontrols").children().remove();
-        $("#lucontrols").children().remove();
+        $("#wucontrols").children("input").remove();
+        $("#aucontrols").children("input").remove();
+        $("#lucontrols").children("input").remove();
 
         for (i=0; i<this.value; i++)
         {
