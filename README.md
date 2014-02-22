@@ -29,6 +29,10 @@ Requirements
 
 	$ sudo make install
 
+	Or you can install RUDECGI from Terminal
+
+	$ sudo apt-get install librudecgi5 librudecgi-dev
+
 How to Use
 ==========
 
