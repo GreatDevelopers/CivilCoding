@@ -6,6 +6,14 @@ Programs related to Civil Engineering
 
 Requirements
 ============
+
+	Installing the C/C++ Compiler and Make
+	
+	$ sudo apt-get install build-essential
+
+	Installing GNUPLOT to plot the graph
+
+	$ sudo apt-get install gnuplot
 	
 	Only required Library for this is RUDE CGI Library. You can use the following link to download it.
 
