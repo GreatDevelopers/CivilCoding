@@ -12,7 +12,7 @@ if [ ! -f main ]; then
 	if [ ! -f ../../photos/somefile ]; then
 		sudo chmod -R 777 ../../photos/
 	else
-		rm ../../photos/somefile
+		rm -f ../../photos/somefile
 	fi
 
 	#Now we have write and read permissions. Place the files form the asset folder in the assets folder

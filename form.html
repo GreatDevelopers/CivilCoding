@@ -121,8 +121,8 @@
 
 
         //remove any previous inputs
-        $("#pcontrols").children().remove();
-        $("#accontrols").children().remove();
+        $("#pcontrols").children("input").remove();
+        $("#accontrols").children("input").remove();
         for (i=0; i<parseInt(this.value); i++)
         {
             $("<input type='text' name='p' value='0' />").appendTo('#pcontrols');
