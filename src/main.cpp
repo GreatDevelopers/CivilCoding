@@ -65,7 +65,7 @@ int main()
         
         //Now do the processing and output we have skipped the input part
         cantBMProcess(conLoadInten, conLoadA, uniIntensity, udlStartPos, lenUDL, fbm, fsf, spanbeam, noseg, nc, nu);
-        printf("Location: index.sh\n\n");
+        //printf("Location: index.sh\n\n");
     }
     header();
 
