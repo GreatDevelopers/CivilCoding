@@ -81,27 +81,29 @@
 </div>
 <script type="text/javascript">
 
-    //When user submits the form
-    $("#mainform").submit(function ()
-    {
-        //Check for the variables here
+    $("#mainform").validate({
+        rules:{
+            nc: {
+                required: true,
+                number: true
+            },
+            nu: {
+                required: true,
+                number: true
+            },
+            noseg: {
+                required: true,
+                number: true,
+                range: [1,1]
+            },
+            spanbeam: {
+                required: true,
+                number: true
+            },
 
-        var checkvariables = $("#nc, #nu, #noseg, #spanbeam,[name='p'],[name='ac'],[name='wu'],[name='au'],[name='lu']");
-        var error = false;
 
-        for (i = 0; i<checkvariables.length; i++)
-        {
-            if (checkvariables[i].value == "")
-              {
-                alert("Please enter a value. You cannot leave this field empty");
-                $(checkvariables[i]).focus();
-                error = true;
-                break;
-              }
         }
-        return !error;
     });
-
     $("#nc").keyup(function(event) {
         /* Act on the event */
 
@@ -110,7 +112,7 @@
             this.value = 0;
         }
 
-        if (this.value==0)
+        if (parseInt(this.value)==0)
         {
             $("#ncvariables").hide();
         }
@@ -125,12 +127,12 @@
         $("#accontrols").children("input").remove();
         for (i=0; i<parseInt(this.value); i++)
         {
-            $("<input type='text' name='p' value='0' />").appendTo('#pcontrols');
+            $("<input type='text' id='p' name='p' value='0' />").appendTo('#pcontrols');
         }
         
         for (i=0; i<this.value; i++)
         {
-            $("#accontrols").append("<input type='text' name='ac' value='0' />");
+            $("#accontrols").append("<input type='text' name='ac' id='ac' value='0' />");
         }
 
         $("#ncvariables").show();
@@ -143,7 +145,7 @@
             this.value=0;
         }
 
-        if (this.value==0)
+        if (parseInt(this.value)==0)
         {
             $("#nuvariables").hide();
         }
@@ -157,15 +159,15 @@
 
         for (i=0; i<this.value; i++)
         {
-            $("<input type='text' name='wu' value='0' />").appendTo('#wucontrols');
+            $("<input type='text' id='wu' name='wu' value='0' />").appendTo('#wucontrols');
         }
         for (i=0; i<this.value; i++)
         {
-          $("<input type='text' name='au' value='0' />").appendTo('#aucontrols');
+          $("<input type='text' id='au' name='au' value='0' />").appendTo('#aucontrols');
         }
         for (i=0; i<this.value; i++)
         {
-            $("<input type='text' name='lu' value='0' />").appendTo('#lucontrols');
+            $("<input type='text' id='lu' name='lu' value='0' />").appendTo('#lucontrols');
         }
 
         $("#nuvariables").show();
