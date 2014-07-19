@@ -118,4 +118,4 @@ Website: http://gndec.ac.in/~hsrai
 
 [Piyush Parkash](https://github.com/piyushparkash)
 
-Website: piyushparkash.blogspot.com
+Website: piyushparkash.wordpress.com
