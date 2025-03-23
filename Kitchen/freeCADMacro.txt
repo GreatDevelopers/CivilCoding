@@ -70,7 +70,7 @@ def create_box(x, y, z, length, width, height, name, color):
 # Walls
 create_box(0, 0, 0, wall_thickness, kitchen_length + wall_thickness, kitchen_height, "Wall_Long1", (0.8, 0.8, 0.8))
 create_box(kitchen_width + wall_thickness, 0, 0, wall_thickness, kitchen_length + wall_thickness, kitchen_height, "Wall_Long2", (0.8, 0.8, 0.8))
-#create_box(wall_thickness, 0, 0, kitchen_width, wall_thickness, kitchen_height, "Wall_Short1", (0.8, 0.8, 0.8))
+create_box(wall_thickness, 0, 7*FT, kitchen_width, wall_thickness, 3.25*FT, "Wall_Short1", (0.8, 0.8, 0.8))
 create_box(wall_thickness, kitchen_length, 0, kitchen_width, wall_thickness, kitchen_height, "Wall_Short2", (0.8, 0.8, 0.8))
 
 # Countertop
