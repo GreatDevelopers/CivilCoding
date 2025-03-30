@@ -3,7 +3,7 @@ import csv
 
 def create_walls_from_csv(filepath):
     """Creates walls and doors/windows from data in a CSV file."""
-
+    
     try:
         with open(filepath, 'r') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -16,7 +16,7 @@ def create_walls_from_csv(filepath):
 
 def create_wall_and_doors(wall_data):
     """Creates a wall and its associated doors/windows."""
-
+    
     # Wall Data
     wall_label = wall_data['WallLabel']
     wall_x = float(wall_data['WallX'])
@@ -37,8 +37,7 @@ def create_wall_and_doors(wall_data):
     # Set wall label
     wall.Label = wall_label
 
-
-    #FreeCAD.ActiveDocument.recompute()
+    FreeCAD.ActiveDocument.recompute()  # Ensure the wall is created before adding doors/windows
 
     # Create doors/windows
     if door_window_data:
@@ -66,16 +65,18 @@ def create_wall_and_doors(wall_data):
 
             # Set door/window label
             door_window.Label = door_window_label
-            door_window.Hosts = [FreeCAD.ActiveDocument.Wall]
 
-            FreeCAD.ActiveDocument.recompute()
-            #Arch.removeComponents(wall, [door_window])
+            # Correct the assignment of the host wall
+            door_window.Hosts = [wall]  # Assign the current wall, not a generic reference
+
+            FreeCAD.ActiveDocument.recompute()  # Ensure updates take effect
 
     # Position and rotate the wall
     wall_placement = FreeCAD.Placement(FreeCAD.Vector(wall_x, wall_y, wall_z), FreeCAD.Rotation(FreeCAD.Vector(0, 0, 1), wall_angle))
     wall.Placement = wall_placement
-    FreeCAD.ActiveDocument.recompute()
+    FreeCAD.ActiveDocument.recompute()  # Recompute after positioning
 
 # Example usage
-csv_file_path = "/home/hsrai/FreeCAD/data.csv" # Replace with your csv file path
+csv_file_path = "/home/hsrai/FreeCAD/data.csv"  # Replace with your csv file path
 create_walls_from_csv(csv_file_path)
+print(f"Macro execution is over")
