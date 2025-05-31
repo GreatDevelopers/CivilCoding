@@ -1,0 +1,147 @@
+import FreeCAD as App
+import FreeCADGui as Gui
+import Part
+from math import atan2, degrees, radians, sqrt, floor, cos
+
+# ----------------- PARAMETERS -----------------
+doc_name = "GateFrameFilled"
+
+# Frame dimensions in inches (converted to mm)
+HoF_inch = 2*12 + 2.5 # 6 * 12
+WoF_inch = 53 # 4 * 12 + 9
+HoF = HoF_inch * 25.4
+WoF = WoF_inch * 25.4
+
+# Frame RHS dimensions
+L = 25.4 #  76.5   # Height of section
+B = 38.1   # Width of section
+t = 2 # 2.5    # Thickness
+
+# Vertical Pipe RHS (diagonal fill)
+pipe_w = 25 # 40  # Horizontal width of profile
+pipe_h = 20 # 20  # Vertical height of profile
+pipe_t = 1.5 # 2   # Thickness
+pipe_spacing = 75  # Max clear spacing (mm)
+
+default_color = (0.7, 0.7, 0.7)
+
+# -------------- DOCUMENT HANDLING -------------
+if doc_name in App.listDocuments():
+    doc = App.getDocument(doc_name)
+    for obj in doc.Objects:
+        doc.removeObject(obj.Name)
+else:
+    doc = App.newDocument(doc_name)
+Gui.ActiveDocument = Gui.getDocument(doc_name)
+
+# ------------- HELPER FUNCTIONS ---------------
+def create_bevel_cutters(length, name_prefix="Cutter"):
+    size = max(L, B) * 4
+    cutters = []
+
+    left_raw = Part.makeBox(size, size, length)
+    left_raw.translate(App.Vector(-size, -B, 0))
+    left_rot = left_raw.copy()
+    left_rot.rotate(App.Vector(0, 0, 0), App.Vector(0, 1, 0), 45)
+    cutters.append(left_rot)
+
+    right_raw = Part.makeBox(size, size, length)
+    right_raw.translate(App.Vector(length, -B, 0))
+    right_rot = right_raw.copy()
+    right_rot.rotate(App.Vector(length, 0, 0), App.Vector(0, 1, 0), -45)
+    cutters.append(right_rot)
+
+    return cutters
+
+def create_bevelled_RHS(length, profile_L, profile_B, thickness, name):
+    outer = Part.makeBox(length, profile_B, profile_L)
+    inner = Part.makeBox(length, profile_B - 2 * thickness, profile_L - 2 * thickness)
+    inner.translate(App.Vector(0, thickness, thickness))
+    pipe = outer.cut(inner)
+
+    cutters = create_bevel_cutters(length, name_prefix=f"{name}_Cutter")
+    pipe = pipe.cut(cutters[0]).cut(cutters[1])
+
+    final = doc.addObject("Part::Feature", name)
+    final.Shape = pipe
+    final.ViewObject.ShapeColor = default_color
+    return final
+
+def create_diagonal_vertical_RHS(height, width, height_profile, thickness, name):
+    """Creates a diagonal-aligned vertical RHS pipe."""
+    outer = Part.makeBox(width, height_profile, height)
+    inner = Part.makeBox(width - 2 * thickness, height_profile - 2 * thickness, height - 2 * thickness)
+    inner.translate(App.Vector(thickness, thickness, thickness))
+    pipe = outer.cut(inner)
+
+    obj = doc.addObject("Part::Feature", name)
+    obj.Shape = pipe
+    obj.ViewObject.ShapeColor = default_color
+
+    # Rotate so that diagonal of profile aligns with X-axis
+    angle = degrees(atan2(height_profile, width))  # atan(20/40)
+    obj.Placement = App.Placement(
+        App.Vector(0, 0, 0),
+        App.Rotation(App.Vector(0, 0, 1), angle)
+    )
+    return obj
+
+# ---------- BUILD FRAME MEMBERS ---------------
+
+# Bottom
+bottom = create_bevelled_RHS(WoF, L, B, t, name="Bottom")
+bottom.Placement.Base = App.Vector(0, 0, 0)
+
+# Top
+top = doc.addObject("Part::Feature", "Top")
+top.Shape = bottom.Shape.mirror(App.Vector(0, 0, HoF / 2), App.Vector(0, 0, 1))
+top.ViewObject.ShapeColor = default_color
+
+# Left Vertical
+left_raw = create_bevelled_RHS(HoF, L, B, t, name="LeftRaw")
+left = doc.addObject("Part::Feature", "Left")
+left.Shape = left_raw.Shape.mirror(App.Vector(0, 0, 0), App.Vector(1, 0, 0))
+doc.removeObject(left_raw.Name)
+left.Placement = App.Placement(App.Vector(0, 0, 0), App.Rotation(App.Vector(0, 1, 0), 90))
+left.ViewObject.ShapeColor = default_color
+
+# Right Vertical (Mirror of Left)
+right = doc.addObject("Part::Feature", "Right")
+right.Shape = left.Shape.mirror(App.Vector(WoF / 2, 0, 0), App.Vector(1, 0, 0))
+right.Placement = App.Placement(App.Vector(0, 0, 0), App.Rotation(App.Vector(0, 1, 0), 0))
+right.ViewObject.ShapeColor = default_color
+
+# ----------- Add Vertical Pipes ---------------
+usable_height = HoF - 2 * L
+usable_width = WoF - 2 * L
+
+pipe_diag_length = sqrt(pipe_w ** 2 + pipe_h ** 2)  # ~44.72 mm
+max_clear_spacing = pipe_spacing
+num_pipes = int((usable_width + max_clear_spacing) // (pipe_diag_length + max_clear_spacing))
+
+# Use user logic:
+cc_spacing = pipe_diag_length + max_clear_spacing  # Center to center spacing
+edge_spacing = max_clear_spacing + pipe_diag_length / 2  # First/last centre to inner edge
+total_span = (num_pipes - 1) * cc_spacing + 2 * edge_spacing
+actual_clear_spacing = (usable_width - num_pipes * pipe_diag_length) / (num_pipes + 1)
+
+angle_rad = atan2(pipe_h, pipe_w)  # ≈ 26.57°
+x_shift = pipe_h * cos(angle_rad)  # Shift due to rotation origin being bottom-left
+
+print(f"Usable gate width: {usable_width:.2f} mm")
+print(f"Number of vertical pipes: {num_pipes}")
+print(f"Diagonal of pipe profile: {pipe_diag_length:.2f} mm")
+print(f"Clear spacing between pipes: {actual_clear_spacing:.2f} mm")
+print(f"X-axis shift for first pipe due to rotation origin: {x_shift:.2f} mm")
+
+for i in range(num_pipes):
+    x_pos = L + (0.5 * x_shift) + actual_clear_spacing + i * (pipe_diag_length + actual_clear_spacing)
+    if i == 0:
+        x_pos -= 0 # x_shift  # Adjust only the first pipe
+    pipe = create_diagonal_vertical_RHS(usable_height, pipe_w, pipe_h, pipe_t, f"Pipe_{i+1}")
+    pipe.Placement.Base = App.Vector(x_pos, 0, L)
+
+# ------------- FINALIZE -----------------------
+doc.recompute()
+Gui.SendMsgToActiveView("ViewFit")
+Gui.ActiveDocument.ActiveView.viewIsometric()
