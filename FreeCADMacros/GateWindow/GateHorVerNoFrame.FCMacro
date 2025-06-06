@@ -1,0 +1,100 @@
+import FreeCAD as App
+import FreeCADGui as Gui
+import Part
+
+# === Document Setup ===
+doc = App.ActiveDocument
+if doc is None:
+    doc = App.newDocument("GateGrouped")
+
+# === Clean Previous Gate Objects ===
+for obj in list(doc.Objects):
+    if obj.Name.startswith(("HorizPipe", "VertPipe", "Panel", "Group")):
+        doc.removeObject(obj.Name)
+
+# === Constants ===
+inch = 25.4  # mm/inch
+
+# === Pipe Colour Options ===
+PIPE_COLOUR = (0.3, 0.3, 0.3)       # Dark grey
+# PIPE_COLOUR = (0.1, 0.1, 0.1)       # Matte black
+# PIPE_COLOUR = (0.27, 0.51, 0.71)     # Steel blue
+# PIPE_COLOUR = (0.13, 0.55, 0.13)    # Forest green
+# PIPE_COLOUR = (0.55, 0.0, 0.0)      # Oxide red / brick red
+# PIPE_COLOUR = (0.8, 0.8, 0.8)       # Light grey
+
+# === Gate Dimensions ===
+PHH = 3 * inch      # Horizontal pipe height
+PHW = 1.5 * inch    # Horizontal pipe width
+PHL = 59.5 * inch   # Horizontal pipe length
+Z_BASE = 10 * inch
+Z_OFFSET = 50 * inch
+X_TOTAL = 180 * inch
+
+PVH = 20            # Vertical pipe depth (X)
+PVW = 20            # Vertical pipe width (Y)
+PVL = 71 * inch     # Vertical pipe height
+Z_BOTTOM = 1 * inch
+EDGE_SPACING = 25
+
+base_pattern = [25, 35, 35, 50, 50, 50, 75, 75, 75, 75, 50, 50, 50, 35, 35, 25]
+pattern_length = len(base_pattern)
+
+# === Create Panel Groups ===
+panel_groups = []
+for i in range(3):
+    panel = doc.addObject("App::DocumentObjectGroup", f"Panel{i+1}")
+    h_group = doc.addObject("App::DocumentObjectGroup", f"Panel{i+1}_Horiz")
+    v_group = doc.addObject("App::DocumentObjectGroup", f"Panel{i+1}_Vert")
+    panel.addObject(h_group)
+    panel.addObject(v_group)
+    panel_groups.append((panel, h_group, v_group))
+
+# === Horizontal Pipes ===
+gap = (X_TOTAL - 3 * PHL) / 2
+for row in range(2):
+    for i in range(3):
+        x = i * (PHL + gap)
+        y = 0
+        z = Z_BASE + row * Z_OFFSET
+        box = Part.makeBox(PHL, PHW, PHH)
+        box.translate(App.Vector(x, y, z))
+        obj = doc.addObject("Part::Feature", f"HorizPipe_{row}_{i+1}")
+        obj.Shape = box
+        obj.ViewObject.ShapeColor = PIPE_COLOUR
+        obj.ViewObject.PointColor = PIPE_COLOUR
+        obj.ViewObject.LineColor = PIPE_COLOUR
+
+        panel_idx = i  # One horizontal segment per panel
+        panel_groups[panel_idx][1].addObject(obj)  # Add to Horiz group
+
+# === Vertical Pipes ===
+x = EDGE_SPACING
+spacing_index = 0
+while x + PVH <= X_TOTAL:
+    y = - PVW  # Align inner face of vertical pipe with outer face of horizontal pipe
+    z = Z_BOTTOM
+    box = Part.makeBox(PVH, PVW, PVL)
+    box.translate(App.Vector(x, y, z))
+    obj = doc.addObject("Part::Feature", f"VertPipe_{spacing_index+1}")
+    obj.Shape = box
+    obj.ViewObject.ShapeColor = PIPE_COLOUR
+    obj.ViewObject.PointColor = PIPE_COLOUR
+    obj.ViewObject.LineColor = PIPE_COLOUR
+
+    # Determine which panel the vertical pipe belongs to
+    if x < PHL:
+        panel_idx = 0
+    elif x < 2 * (PHL + gap):
+        panel_idx = 1
+    else:
+        panel_idx = 2
+    panel_groups[panel_idx][2].addObject(obj)  # Add to Vert group
+
+    x += PVH + base_pattern[spacing_index % pattern_length]
+    spacing_index += 1
+
+# === Finalize ===
+doc.recompute()
+Gui.activeDocument().activeView().viewIsometric()
+Gui.SendMsgToActiveView("ViewFit")
