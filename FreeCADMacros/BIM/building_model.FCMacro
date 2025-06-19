@@ -1,0 +1,242 @@
+# -*- coding: utf-8 -*-
+
+import FreeCAD
+import Part
+import Sketcher
+import Arch
+import math
+import re # For more robust parsing
+import WorkingPlane # To get the current working plane's properties
+
+# --- User Input Data for Wall Sketch ---
+# Define your wall layout here as a single string.
+# Format: "Easting,Northing LengthDirection LengthDirection ... C(optional)"
+#   - Easting,Northing: Absolute starting point in the current working plane's XY.
+#       (e.g., "0,0" or "-100.5,200")
+#   - LengthDirection: Segment definition (no spaces between L and D).
+#       - Length (L): Can be positive or negative. If negative, direction is reversed.
+#       - Direction (D):
+#           - Cardinal (N, S, E, W): Absolute direction (case-insensitive).
+#           - Angle (<Angle): Relative angle in degrees from previous segment (or absolute from East for 1st segment).
+#               Prefix with '<' (e.g., "500<90", "-200<-45").
+#   - C: Optional. If present, closes the polygon to the starting point (case-insensitive).
+#
+# Elements (start point, segments, and 'C') are separated by one or more spaces.
+WALL_DATA_STR = "0,0 5000E 3500<90 5000<90 C"
+# Example of a square: "0,0 1000E 1000<90 1000<90 1000<90 C"
+# Example with negative length: "0,0 -500E 500N C" (This would be 500W, then 500N, then close)
+# Your test case: WALL_DATA_STR = "0,0 1000E 500<90 1000<90 C"
+
+INCH = 25.4 # In mm
+FEET = 12 * INCH # In mm
+# --- Wall Parameters (optional, default Arch values will be used if not set) ---
+WALL_HEIGHT = 11 * FEET + 3 * INCH  # Example: 2.5 meters high (in mm)
+WALL_WIDTH = 10 * INCH    # Example: 150 mm thick (in mm)
+
+# --- General Geometric Tolerance (used because FreeCAD.BoundBox().Tolerance is unavailable) ---
+# This is a small value used for floating-point comparisons in geometry.
+GEOMETRIC_TOLERANCE = 1e-7 # 0.0000001 mm or units
+
+
+def parse_wall_data_string(data_string):
+    """
+    Parses the WALL_DATA_STR into a structured list for processing.
+    Returns: A tuple (start_point_xy, segments_list, close_polygon_flag)
+    start_point_xy: tuple (float, float) for (Easting, Northing)
+    Segments_list: will contain tuples like (length_float, direction_value_or_string)
+    """
+    # Use re.split to handle multiple spaces as single delimiters, and filter out empty strings
+    parts = [p.strip() for p in re.split(r'\s+', data_string) if p.strip()]
+
+    if len(parts) < 2: # Minimum: E,N, and one segment (e.g., '0,0 100E')
+        raise ValueError("WALL_DATA_STR is too short. Requires at least start point and one segment.")
+
+    # 1. Parse Start Point (Easting,Northing)
+    start_coords_str = parts[0].split(',')
+    if len(start_coords_str) != 2:
+        raise ValueError(f"Invalid starting point format: '{parts[0]}'. Must be 'Easting,Northing'.")
+    try:
+        start_x = float(start_coords_str[0])
+        start_y = float(start_coords_str[1])
+        start_point_xy = (start_x, start_y)
+    except ValueError:
+        raise ValueError(f"Invalid starting point coordinates: '{parts[0]}'. Must be numbers.")
+
+    segments = []
+    close_polygon = False
+
+    # 2. Check for 'C' (case-insensitive) at the very end
+    data_segments_raw = parts[1:] # All parts after the starting coordinates
+    if data_segments_raw and data_segments_raw[-1].upper() == "C":
+        close_polygon = True
+        data_segments_raw = data_segments_raw[:-1] # Exclude the 'C' for segment parsing
+
+    # 3. Parse Line Segments (LengthDirection)
+    # Regex for segment format:
+    # ([-+]?\d*\.?\d+) : Captures length (can be float, integer, positive/negative)
+    # ([NSWE]?) : Optionally captures a single cardinal direction (case-insensitive due to re.IGNORECASE)
+    # (?:<([-+]?\d*\.?\d+))? : Optionally captures '<' followed by an angle (non-capturing group `?:`, angle captured in group 3)
+    segment_pattern = re.compile(r'([-+]?\d*\.?\d+)([NSWE])?(?:<([-+]?\d*\.?\d+))?$', re.IGNORECASE)
+
+    for i, segment_str in enumerate(data_segments_raw):
+        match = segment_pattern.match(segment_str)
+        if not match:
+            raise ValueError(f"Invalid segment format: '{segment_str}'. Expected 'LengthDirection' or 'Length<Angle'.")
+        
+        length_str = match.group(1)
+        cardinal_dir_str = match.group(2) # Will be 'N', 'S', 'E', 'W' or None
+        angle_str = match.group(3)        # Will be the angle string (e.g., "90.0") or None
+
+        try:
+            length = float(length_str)
+        except ValueError:
+            raise ValueError(f"Invalid length value in '{segment_str}'. Must be a number.")
+
+        direction_val = None
+        if cardinal_dir_str:
+            direction_val = cardinal_dir_str.upper() # Store as uppercase N,S,E,W
+        elif angle_str is not None: # It's an angle if angle_str is captured
+            try:
+                direction_val = float(angle_str) # Store as float angle
+            except ValueError:
+                raise ValueError(f"Invalid angle value in '{segment_str}'. Must be a number after '<'.")
+        else: # Should mean neither cardinal nor angle found, which is an error based on format
+            raise ValueError(f"Segment '{segment_str}' is missing a valid direction (N,S,E,W or <Angle).")
+        
+        segments.append((length, direction_val))
+    
+    return start_point_xy, segments, close_polygon
+
+
+def create_walls_from_data_string(wall_data_str):
+    """
+    Creates a new FreeCAD document, generates a sketch based on the parsed wall data,
+    converts it to a Part.Wire, and then creates an Arch Wall object from that wire.
+    All GUI-related commands are avoided.
+    Uses the new string-based input format.
+    """
+    try:
+        start_point_xy, segments_data, close_polygon_flag = parse_wall_data_string(wall_data_str)
+
+        # Create a new document if one isn't active
+        doc = FreeCAD.ActiveDocument
+        if doc is None:
+            doc = FreeCAD.newDocument("WallsOnlyProject")
+        
+        # Get the current working plane's placement for the sketch
+        wp_placement = FreeCAD.Placement() # Default to XY plane at origin
+        try:
+            # Attempt to get the current working plane's placement if GUI is active
+            if hasattr(FreeCAD, "Gui") and FreeCAD.Gui.ActiveDocument:
+                current_wp = WorkingPlane.get_working_plane()
+                # Now we know 'get_placement' method exists
+                if hasattr(current_wp, 'get_placement') and callable(current_wp.get_placement):
+                    wp_placement = current_wp.get_placement()
+                else:
+                    FreeCAD.Console.PrintWarning(f"Warning: 'WorkingPlane' object of type '{type(current_wp).__name__}' does not have a 'get_placement' method, defaulting to XY plane.\n")
+            else:
+                FreeCAD.Console.PrintMessage("Running without active GUI, defaulting to XY plane for sketch placement.\n")
+        except Exception as e: # Catch any other unexpected errors from WorkingPlane module
+            FreeCAD.Console.PrintWarning(f"Warning: Could not determine active working plane, defaulting to XY. Error: {e}\n")
+            wp_placement = FreeCAD.Placement() # Default to XY plane at origin
+
+        # Create a new Sketcher object
+        sketch = doc.addObject('Sketcher::SketchObject', 'WallFootprintSketch')
+        
+        # Set the sketch's placement to match the current working plane's placement
+        # This means all points added to the sketch will be in the local coordinates of this plane.
+        sketch.Placement = wp_placement
+        
+        current_point_local = FreeCAD.Vector(start_point_xy[0], start_point_xy[1], 0)
+        first_point_of_wall_local = current_point_local # Keep track of the very first point for closure
+        last_line_abs_angle = 0  # Absolute angle of the last drawn segment relative to the XY plane's X-axis (East=0)
+
+        sketch_segments = [] # List to hold Part.LineSegment objects for the sketch
+
+        for i, (length_raw, direction_or_angle) in enumerate(segments_data):
+            
+            # 1. Determine effective length and whether to reverse direction
+            length_abs = abs(length_raw)
+            reverse_segment_direction = (length_raw < 0)
+            
+            end_point_local = None
+            calculated_abs_angle = 0 # This will be the final absolute angle of the current segment
+
+            # 2. Calculate the base angle before considering negative length
+            if isinstance(direction_or_angle, str): # Cardinal direction (N, S, E, W)
+                if direction_or_angle == "N": calculated_abs_angle = 90
+                elif direction_or_angle == "S": calculated_abs_angle = -90 # Or 270
+                elif direction_or_angle == "E": calculated_abs_angle = 0
+                elif direction_or_angle == "W": calculated_abs_angle = 180
+            
+            elif isinstance(direction_or_angle, (int, float)): # Angle (relative or absolute for first)
+                angle_value = direction_or_angle # The input angle (e.g., 90, 0, -45)
+
+                if i == 0: # First segment after start point: absolute angle from East
+                    calculated_abs_angle = angle_value
+                else: # Subsequent segments: relative deviation from previous absolute angle
+                    calculated_abs_angle = last_line_abs_angle + angle_value
+            
+            else:
+                raise ValueError(f"Unrecognized direction/angle type for segment {i+1}: {direction_or_angle}")
+            
+            # 3. Apply reversal for negative length
+            if reverse_segment_direction:
+                calculated_abs_angle = (calculated_abs_angle + 180) % 360
+                # Normalize angle to -180 to 180 range if desired, or keep 0-360
+                if calculated_abs_angle > 180: calculated_abs_angle -= 360 
+            
+            last_line_abs_angle = calculated_abs_angle # Store for the next relative calculation
+
+            # 4. Calculate end point
+            current_angle_rad = math.radians(calculated_abs_angle)
+            delta_x = length_abs * math.cos(current_angle_rad)
+            delta_y = length_abs * math.sin(current_angle_rad)
+            end_point_local = FreeCAD.Vector(current_point_local.x + delta_x, current_point_local.y + delta_y, 0)
+            
+            if end_point_local:
+                sketch_segments.append(Part.LineSegment(current_point_local, end_point_local))
+                current_point_local = end_point_local
+            else:
+                raise RuntimeError(f"Could not determine end point for segment {i+1}.")
+
+        # Handle final closure if "C" was present
+        if close_polygon_flag:
+            # Use distanceToPoint and GEOMETRIC_TOLERANCE
+            if current_point_local.distanceToPoint(first_point_of_wall_local) > GEOMETRIC_TOLERANCE:
+                sketch_segments.append(Part.LineSegment(current_point_local, first_point_of_wall_local))
+                current_point_local = first_point_of_wall_local # Update for consistency
+            else:
+                FreeCAD.Console.PrintMessage("Warning: 'C' was specified but the polygon was already closed (points are coincident within tolerance).\n")
+
+        # Add all line segments to the sketch
+        sketch.addGeometry(sketch_segments, False) # False means don't apply constraints automatically
+        
+        # Ensure the document is recomputed to make the sketch's shape available
+        doc.recompute()
+        
+        # --- Create Arch Wall directly from the sketch ---
+        wall_obj = Arch.makeWall(sketch) # Pass the sketch object directly
+
+        # Optionally set wall height and width
+        wall_obj.Height = WALL_HEIGHT
+        wall_obj.Width = WALL_WIDTH
+
+        # Make the sketch invisible, as the wall is now based on it
+        sketch.ViewObject.Visibility = False 
+
+        doc.recompute() # Recompute the document to update the wall object
+        
+        FreeCAD.Console.PrintMessage(f"Successfully created wall object: {wall_obj.Label} from sketch.\n")
+
+        # If running in GUI, fit all contents to view for better visualization
+        if hasattr(FreeCAD, "Gui") and FreeCAD.Gui.ActiveDocument:
+            FreeCAD.Gui.ActiveDocument.ActiveView.fitAll()
+
+    except Exception as e:
+        FreeCAD.Console.PrintError(f"An error occurred: {e}\n")
+        import traceback
+        traceback.print_exc()
+
+# Run the macro
+create_walls_from_data_string(WALL_DATA_STR)
