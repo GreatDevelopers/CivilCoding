@@ -1,0 +1,30 @@
+# DEFAULTS
+brick = 230
+brick_colour = .5:Red 1:DarkGrey 1.5:LightDrey
+wall_height = 3600
+wall_thickness = 1
+lintel_level = 2300
+sill_level = 1150
+
+# DOOR_TYPES
+D1 = Simple door, 900
+D2 = Simple door, 1500
+D3 = Glass door, 1000
+D4 = Sliding 2-pane, 1200
+D5 = Sliding 2-pane, 1800
+
+# WINDOW_TYPES
+W1 = Open 2-pane, 1000
+W2 = Fixed, 1500, 2000
+W3 = Glass door, 1200
+W4 = Sliding 2-pane, 1600
+W5 = Awning, 900
+
+# WALL_DATA
+Outer: 0,8001 2362.2E 5181.6S 4114.8<90 3352.8<90 2971.8e 7315.2N 9448.8W C height=4500 thick=1.5
+Living: 6096,13400 5500S 3000<90 o
+Bath: 0,9000 2500E 1000<-90 O thick=.5
+
+# OPENING_DATA
+Outer: 1: 100 W1
+Bath: 1: 80 D1
