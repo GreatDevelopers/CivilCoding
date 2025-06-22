@@ -1,0 +1,113 @@
+import FreeCAD as App
+import FreeCADGui as Gui
+import Draft, Arch, json
+import os
+
+doc = App.ActiveDocument
+if not doc:
+    doc = App.newDocument("BIM_Model")
+
+json_file = "C:/Users/GNE3/OneDrive/Documents/FreeCAD/BIM/parseddata.json"
+
+# Delete old objects
+for obj in list(doc.Objects):
+    doc.removeObject(obj.Name)
+
+def make_wire_from_points(points):
+    verts = [App.Vector(p[0], p[1], 0) for p in points]
+    return Draft.makeWire(verts, closed=False, face=False, support=None)
+
+def draw_wall(wall):
+    label = wall["label"]
+    points = wall["path"]
+    height = wall.get("height", 3000)
+    thickness = wall.get("thickness", 230)
+    closed = wall.get("closed", False)
+
+    App.Console.PrintMessage(f"  Wall thickness {thickness}\n")
+    wire = make_wire_from_points(points)
+    wall_obj = Arch.makeWall(wire, width=thickness, height=height)
+    wall_obj.Label = label
+    return wall_obj, points
+
+def place_opening(wall_obj, p1, p2, angle_deg, is_window, label, preset, width, height):
+    try:
+        base = App.Vector(p1.x, p1.y, 0)
+        axis = App.Vector(1, 0, 0)
+        placement = App.Placement(base, App.Rotation(axis, angle_deg))
+
+        obj = Arch.makeWindowPreset(
+            preset,
+            width=float(width),
+            height=float(height),
+            h1=100, h2=100, h3=100,
+            w1=200, w2=100,
+            o1=0, o2=100,
+            placement=placement
+        )
+
+        obj.Label = label
+        obj.Hosts = [wall_obj]
+        doc.recompute()
+        App.Console.PrintMessage(f"  ✅ Placed opening: {label}\n")
+    except Exception as e:
+        App.Console.PrintError(f"  ❌ Failed placing opening {label}: {e}\n")
+
+with open(json_file) as f:
+    data = json.load(f)
+
+walls_data = data["walls"]
+window_types = data.get("window_types", {})
+door_types = data.get("door_types", {})
+
+for wall in walls_data:
+    label = wall["label"]
+    App.Console.PrintMessage(f"🏗️ Creating wall: {label} with {len(wall['path'])} points\n")
+    wall_obj, path_pts = draw_wall(wall)
+
+    for opening in wall.get("openings", []):
+        try:
+            seg_idx = opening["segment_index"]
+            pos = opening["position"]
+            ref = opening["ref"]
+            opening_type = opening["type"]
+
+            if seg_idx < 0 or seg_idx >= len(path_pts) - 1:
+                App.Console.PrintError(f"  ⚠️ Segment index {seg_idx} out of bounds in {label}\n")
+                continue
+
+            p0 = App.Vector(*path_pts[seg_idx])
+            p1 = App.Vector(*path_pts[seg_idx + 1])
+            seg_vec = p1.sub(p0)
+            length = seg_vec.Length
+
+            if pos >= length:
+                App.Console.PrintError(f"  ⚠️ Position {pos} exceeds segment length in {label}\n")
+                continue
+
+            unit_vec = seg_vec.normalize()
+            op_pos = p0.add(unit_vec.multiply(pos))
+            angle = math.degrees(math.atan2(unit_vec.y, unit_vec.x))
+
+            if opening_type == "window":
+                preset_info = window_types.get(ref)
+                is_window = True
+            else:
+                preset_info = door_types.get(ref)
+                is_window = False
+
+            if not preset_info:
+                App.Console.PrintError(f"  ⚠️ No preset found for {ref}\n")
+                continue
+
+            preset = preset_info["preset"]
+            width = preset_info["width"]
+            height = preset_info["height"]
+
+            place_opening(wall_obj, op_pos, p1, angle, is_window, f"{label}_{ref}", preset, width, height)
+
+        except Exception as e:
+            App.Console.PrintError(f"  ❌ Error placing opening on wall {label}: {e}\n")
+
+App.Console.PrintMessage("✅ All walls and openings created.\n")
+Gui.SendMsgToActiveView("ViewFit")
