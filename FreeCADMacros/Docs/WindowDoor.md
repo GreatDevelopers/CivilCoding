@@ -88,7 +88,20 @@ for solid in Mywin01.Shape.Solids:
 
 Note:
 
-1. At the time of writing this, list of preset  is:
+1. To change colour of window glass
+    1. `Tools -> Edit parameters` then navigate to
+`BaseApp/Preferences/Mod/Arch` and need to set value of
+`WindowGlassColor`, in BGRA, See table:
+
+| Value (decimal) | Value (hex)  | What You Expect | What FreeCAD Shows |
+| --------------- | ------------ | --------------- | ------------------ |
+| 4294901760      | `0xFFFF0000` | Red             | Yellow             |
+| 4278255360      | `0xFF00FF00` | Green           | Magenta            |
+| 4278190335      | `0xFF0000FF` | Blue            | Red                |
+| 4294967040      | `0xFFFFFF00` | Yellow          | Grey or Blue-ish   |
+| 4294967295      | `0xFFFFFFFF` | White           | White              |
+
+2. At the time of writing this, list of preset  is:
     1. Awning
     2. Fixed
     3. Glass door
