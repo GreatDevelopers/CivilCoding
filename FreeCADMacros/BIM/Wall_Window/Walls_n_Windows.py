@@ -2,6 +2,7 @@ import FreeCAD, Draft, Arch
 import csv
 
 DEBUG = False  # Global flag for enabling/disabling debugging
+red = (1.0, 0.0, 0.0)
 
 def create_walls_from_csv(filepath):
     """Creates walls and doors/windows from structured CSV data with optional debugging."""
@@ -134,6 +135,10 @@ def create_door_window(row, wall):
 
         door_window.Label = label
         door_window.Hosts = [wall]
+        view = door_window.ViewObject
+        view.ShapeColor = red      # Sets the solid shape color
+        view.LineColor = red       # Sets line color (wireframe)
+        view.PointColor = red      # Sets color of points (if any)
 
         if DEBUG: print(f"   ✅ {type} '{label}' added at ({x}, 0, {z}) to Wall: {wall.Label}")
         
@@ -155,6 +160,7 @@ def reposition_wall(wall, row):
         print(f"❌ Error repositioning wall '{wall.Label}': {e}")
 
 # Example usage
-csv_file_path = "/home/hsrai/FreeCAD/data.csv"  # Replace with your CSV file path
+csv_file_path = "C:/Users/GNE3/Downloads/data21B.csv"  # Replace with your CSV file path
+# csv_file_path = "/home/hsrai/FreeCAD/data.csv"  # Replace with your CSV file path
 create_walls_from_csv(csv_file_path)
 print(f"\n🔹 Macro execution is over: Good CSV\n")
