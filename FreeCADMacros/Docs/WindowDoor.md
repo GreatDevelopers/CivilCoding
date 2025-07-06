@@ -112,6 +112,14 @@ Note:
     8. Simple door
     9. Sliding 2-pane
     10. Sliding 4-pane
+  
+## Reporting
+
+SQL statenent to fetch window using `Reportign` workbench:
+
+```sql
+SELECT Label, Width.Value, Height.Value, Shape.BoundBox.ZMin, Shape.BoundBox.ZMax, Width.Value * Height.Value, Material.Label, Material.MaterialType FROM document WHERE IfcType = 'Window'
+```
 
 ## References
 
