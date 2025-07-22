@@ -160,7 +160,7 @@ def main(filename):
     # Draw bottom and top rows of horizontal pipes
     for x in horiz_positions:
         y = 0
-        #draw_rectangle(msp, "Plan", x, y, PHL, PHW)                 # Bottom row
+        draw_rectangle(msp, "Plan", x, y, PHL, PHW)                 # Bottom row
         draw_rectangle(msp, "Plan", x, y + Z_OFFSET, PHL, PHW)      # Top row
 
     # Draw vertical pipes and collect their X positions
