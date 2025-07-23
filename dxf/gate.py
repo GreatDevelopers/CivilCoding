@@ -2,12 +2,12 @@ import ezdxf
 import sys
 import locale
 
-# Ensure decimal separator uses a period
+# Set locale for decimal separator
 locale.setlocale(locale.LC_NUMERIC, 'C')
 
 INCH = 25.4
 
-PHL = [58.625 * INCH, 58.5 * INCH, 58.5 * INCH]
+PHL = [59.625 * INCH, 59.5 * INCH, 56.5 * INCH]
 gap = [2 / 8 * INCH, 1 / 8 * INCH]
 X_TOTAL = sum(PHL) + sum(gap)
 print(f"Total gate width (X_TOTAL): {X_TOTAL:.3f} mm")
@@ -37,6 +37,8 @@ LAYER_DEFS = {
     "PlanTop": 1,
     "PlanBot": 3,
     "Elevation": 2,
+    "ElevationVert80": 1,
+    "ElevationMid": 1,
     "DimPlanTP": 5,
     "DimPlanSpacing": 4,
     "DimPlanBP": 6,
@@ -112,7 +114,7 @@ def main(filename):
     for i in range(2):
         panels_x.append(panels_x[-1] + PHL[i] + gap[i])
 
-    # --- PLAN TOP PIPE (80x40 mm, red and hatched red) ---
+    # --- PLAN TOP PIPE ---
     y = Y_PLAN_TOP
     for i in range(3):
         pts = draw_rectangle(msp, "PlanTop", panels_x[i], y, PHL[i], PHW, color=1)
@@ -120,7 +122,7 @@ def main(filename):
 
     DIM_GAP = 100
 
-    # Tier dimensions (unchanged)
+    # TIERED DIMENSIONS
     for i in range(2):
         x1 = panels_x[i] + PHL[i]
         x2 = panels_x[i + 1]
@@ -158,7 +160,7 @@ def main(filename):
         angle=90
     )
 
-    # --- PLAN BOTTOM PIPE (20x20 mm, green and hatched green) ---
+    # --- PLAN BOTTOM PIPE ---
     y = Y_PLAN_BOT
     for i in range(3):
         draw_rectangle(msp, "PlanBot", panels_x[i], y, PHL[i], PHW, color=1)
@@ -187,9 +189,8 @@ def main(filename):
 
     pat_base_y = y - PHW - 5
 
-    # --- Show spacing dimensions between vertical (square) pipes ---
+    # -- Restore all previous DIMENSIONS in DimPlanSpacing including spacing between square pipes --
     for i in range(1, len(vertical_pipe_x)):
-        # Center-to-center spacing for visual clarity (alternatively use face-to-face)
         p1 = (vertical_pipe_x[i - 1] + PVW/2, y - PVW / 2)
         p2 = (vertical_pipe_x[i] + PVW/2, y - PVW / 2)
         base = ((p1[0] + p2[0]) / 2, pat_base_y - 20)
@@ -200,8 +201,6 @@ def main(filename):
             base=base,
             angle=0
         )
-
-    # Restore all previous edge and "span" dimensions (space from frame to first/last pipe and total)
     add_linear_dim(
         msp, "DimPlanSpacing", DIM_STYLE_BOTTOM,
         p1=(panels_x[0], y),
@@ -246,14 +245,42 @@ def main(filename):
         angle=90
     )
 
-    # --- ELEVATION ---
+    # --- ELEVATION (Now with vertical 80x40 red members and mid horizontal) ---
     y = Y_ELEV
     for i in range(3):
-        # Horizontal 80x40 mm: base pipes, draw as red/hatch red
-        pts = draw_rectangle(msp, "Elevation", panels_x[i], y + Z_BASE, PHL[i], PHH, color=1)
+        x0 = panels_x[i]
+        width = PHL[i]
+        y_base = y + Z_BASE
+
+        # Bottom member
+        pts = draw_rectangle(msp, "Elevation", x0, y_base, width, PHH, color=1)
         hatch_rect(msp, "Elevation", pts, color=1)
-        pts2 = draw_rectangle(msp, "Elevation", panels_x[i], y + Z_BASE + Z_OFFSET, PHL[i], PHH, color=1)
+        # Top member
+        pts2 = draw_rectangle(msp, "Elevation", x0, y_base + Z_OFFSET, width, PHH, color=1)
         hatch_rect(msp, "Elevation", pts2, color=1)
+        # Middle member
+        mid_y = y_base + Z_OFFSET / 2 - PHH / 2
+        pts3 = draw_rectangle(msp, "ElevationMid", x0, mid_y, width, PHH, color=1)
+        hatch_rect(msp, "ElevationMid", pts3, color=1)
+        # Vertical left: 80x40, red, on new layer
+        vleft_pts = [
+            (x0, y_base),
+            (x0 + PHH, y_base),
+            (x0 + PHH, y_base + Z_OFFSET + PHH),
+            (x0, y_base + Z_OFFSET + PHH)
+        ]
+        msp.add_lwpolyline(vleft_pts + [vleft_pts[0]], dxfattribs={"layer": "ElevationVert80", "color": 1})
+        hatch_rect(msp, "ElevationVert80", vleft_pts, color=1)
+        # Vertical right: 80x40, red, on new layer
+        x1 = x0 + width
+        vright_pts = [
+            (x1 - PHH, y_base),
+            (x1, y_base),
+            (x1, y_base + Z_OFFSET + PHH),
+            (x1 - PHH, y_base + Z_OFFSET + PHH)
+        ]
+        msp.add_lwpolyline(vright_pts + [vright_pts[0]], dxfattribs={"layer": "ElevationVert80", "color": 1})
+        hatch_rect(msp, "ElevationVert80", vright_pts, color=1)
 
     for xp in vertical_pipe_x:
         elev_pts = [
@@ -265,6 +292,7 @@ def main(filename):
         msp.add_lwpolyline(elev_pts + [elev_pts[0]], dxfattribs={"layer": "Elevation", "color": 3})
         hatch_rect(msp, "Elevation", elev_pts, color=3)
 
+    # ----- ELEVATION DIMENSIONS (unchanged from your last working version) -----
     elev_y_max = y + Z_BASE + PHH + Z_OFFSET + 80
     add_linear_dim(
         msp, "DimElevation", DIM_STYLE_MAIN,
