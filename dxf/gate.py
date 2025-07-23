@@ -2,7 +2,7 @@ import ezdxf
 import sys
 import locale
 
-# Ensure decimal separator is period (.)
+# Ensure decimal separator uses a period
 locale.setlocale(locale.LC_NUMERIC, 'C')
 
 INCH = 25.4
@@ -24,7 +24,7 @@ PVL = TopLevel - Z_BOTTOM
 Z_BASE = Z_BOTTOM
 Z_OFFSET = TopLevel - 9 * INCH - PHH
 
-EDGE_SPACING = 20
+EDGE_SPACING = 19.8
 SPACING_PATTERN = [20, 32.5, 45, 65, 45, 32.5, 20]
 PATTERN_LEN = len(SPACING_PATTERN)
 
@@ -86,9 +86,6 @@ def draw_rectangle(msp, layer, x, y, width, height):
     msp.add_lwpolyline(pts, dxfattribs={"layer": layer})
 
 def add_linear_dim(msp, layer, dimstyle, p1, p2, base, angle=0, location=None):
-    """
-    Add a linear dimension. If 'location' is supplied, it puts text exactly there (use for custom placement).
-    """
     dim = msp.add_linear_dim(
         base=base, p1=p1, p2=p2, angle=angle,
         dimstyle=dimstyle,
@@ -103,7 +100,7 @@ def main(filename):
     setup_layers(doc)
     setup_dimstyles(doc)
 
-    # Calculate X panel positions
+    # Calculate panel X positions
     panels_x = [0]
     for i in range(2):
         panels_x.append(panels_x[-1] + PHL[i] + gap[i])
@@ -115,8 +112,7 @@ def main(filename):
 
     DIM_GAP = 100
 
-    # (2) --- Dimension Tiers: Gaps above, panel/total widths below ---
-    # Tier 1 (gaps) ABOVE the horizontal pipe
+    # Tier 1 (gaps) ABOVE the pipe
     for i in range(2):
         x1 = panels_x[i] + PHL[i]
         x2 = panels_x[i + 1]
@@ -129,7 +125,7 @@ def main(filename):
             angle=0
         )
 
-    # Tier 2 (panel widths) BELOW the horizontal pipe
+    # Tier 2 (panel widths) BELOW the pipe
     for i in range(3):
         x1 = panels_x[i]
         x2 = x1 + PHL[i]
@@ -142,7 +138,7 @@ def main(filename):
             angle=0
         )
 
-    # Tier 3 (overall width) FARTHER BELOW the pipe
+    # Tier 3 (overall width) further below
     add_linear_dim(
         msp, "DimPlanTP", DIM_STYLE_MAIN,
         p1=(0, y),
@@ -151,8 +147,7 @@ def main(filename):
         angle=0
     )
 
-    # (1) --- Vertical dimension to THE LEFT of the start of the pipe ---
-    # Instead of right of end, set at left of start (panels_x[0])
+    # Vert. dimension to left of pipe
     add_linear_dim(
         msp, "DimPlanTP", DIM_STYLE_MAIN,
         p1=(panels_x[0], y),
@@ -188,29 +183,52 @@ def main(filename):
             angle=0
         )
 
-    # (3) --- Square pipe (20x20mm) size, show both H and V dimensions next to one square pipe (not at far end) ---
-    # Pick the first vertical pipe for clarity
+    # a) Left end of horizontal pipe (panel 1) and left face of first vertical pipe
+    add_linear_dim(
+        msp, "DimPlanSpacing", DIM_STYLE_BOTTOM,
+        p1=(panels_x[0], y),
+        p2=(vertical_pipe_x[0], y),
+        base=((panels_x[0] + vertical_pipe_x[0]) / 2, y - PHW - 30),
+        angle=0
+    )
+    # b) Right face of last vertical pipe and right end of last horizontal pipe (panel 3)
+    last_panel_end = panels_x[2] + PHL[2]
+    last_pipe_right = vertical_pipe_x[-1] + PVW
+    add_linear_dim(
+        msp, "DimPlanSpacing", DIM_STYLE_BOTTOM,
+        p1=(last_pipe_right, y),
+        p2=(last_panel_end, y),
+        base=((last_pipe_right + last_panel_end) / 2, y - PHW - 30),
+        angle=0
+    )
+    # Dimension from left face of first vertical pipe to right face of last vertical pipe
+    add_linear_dim(
+        msp, "DimPlanSpacing", DIM_STYLE_BOTTOM,
+        p1=(vertical_pipe_x[0], y),
+        p2=(vertical_pipe_x[-1] + PVW, y),
+        base=((vertical_pipe_x[0] + vertical_pipe_x[-1] + PVW) / 2, y - PHW - 60),
+        angle=0
+    )
+
+    # Square pipe (20x20mm) next to first vertical pipe
     sq_x = vertical_pipe_x[0]
     sq_y = y - PVW
 
-    # Horizontal
     add_linear_dim(
         msp, "DimPlanBP", DIM_STYLE_BOTTOM,
         p1=(sq_x, sq_y),
         p2=(sq_x + PVW, sq_y),
-        base=(sq_x + PVW / 2, sq_y - 25),  # Below the square
+        base=(sq_x + PVW / 2, sq_y - 25),
         angle=0
     )
-    # Vertical
     add_linear_dim(
         msp, "DimPlanBP", DIM_STYLE_BOTTOM,
         p1=(sq_x, sq_y),
         p2=(sq_x, sq_y + PVW),
-        base=(sq_x - 25, sq_y + PVW / 2),  # Left of the square
+        base=(sq_x - 25, sq_y + PVW / 2),
         angle=90
     )
 
-    # Dimension bar size (rectangle, right of plan)
     right_x = X_TOTAL
     add_linear_dim(
         msp, "DimPlanBP", DIM_STYLE_BOTTOM,
@@ -242,10 +260,23 @@ def main(filename):
         angle=90
     )
 
+    # [REMOVED] Left end of horizontal pipe (panel 1) to left face of first vertical pipe
+
+    # [ADD] In elevation: left face of first vertical pipe to right face of last vertical pipe
+    elev_y_pipe = y + Z_BASE
+    add_linear_dim(
+        msp, "DimElevation", DIM_STYLE_MAIN,
+        p1=(vertical_pipe_x[0], elev_y_pipe),
+        p2=(vertical_pipe_x[-1] + PVW, elev_y_pipe),
+        base=((vertical_pipe_x[0] + vertical_pipe_x[-1] + PVW) / 2, elev_y_pipe - PHH - 30),
+        angle=0
+    )
+
     pipe0x = vertical_pipe_x[0]
     add_linear_dim(
         msp, "DimElevation", DIM_STYLE_MAIN,
-        p1=(pipe0x, y), p2=(pipe0x, y + Z_BOTTOM),
+        p1=(pipe0x, y),
+        p2=(pipe0x, y + Z_BOTTOM),
         base=(pipe0x - 40, y + Z_BOTTOM / 2),
         angle=90
     )
